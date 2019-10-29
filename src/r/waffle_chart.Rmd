@@ -1,5 +1,5 @@
 ---
-title: "Mortgage Classification using CatBoostclassifier"
+title: "Waffle chart"
 author: "bokola"
 date: "`r format(Sys.time(), '%d %B, %Y')`"
 output:
@@ -50,7 +50,7 @@ ipk(list.of.pkgs)
 hom.dir = ifelse(Sys.info()["sysname"] == "Windows", Sys.getenv("USERPROFILE"), Sys.getenv("HOME"))
 project.path = path.expand(file.path(hom.dir
                                      ,"Analysis"
-                                     ,"tidytuesday")) %>% gsub("\\\\", "/", .)
+                                     ,"tidytuesday plots")) %>% gsub("\\\\", "/", .)
 
 data.path = path.expand(file.path(project.path
                                   ,"data"))
@@ -98,7 +98,7 @@ if(!file.exists(scripts.path)){
 }
 ```
 
-```{r paths, warning=FALSE,results='hide', echo=FALSE, message=FALSE}
+```{r paths, warning=FALSE, echo=TRUE, message=FALSE}
 df <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-09-24/school_diversity.csv")
 df = df %>%
   mutate(., Multi = ifelse(is.na(Multi), 0, Multi))
@@ -166,7 +166,7 @@ for (group in c("Diverse", "Undiverse", "Extremely undiverse")) {
         plot.background = element_rect(fill = '#F3F7F7'),
         plot.margin = unit(c(1.5, 1.5, 1.5, 1.5), 'cm')
       )
-    ggsave(paste0(here::here(), "/plots/",group, year,".png"), 
+    ggsave(paste0(here::here(), "/tidytuesday plots/plots/",group, year,".png"), 
            width = 8, height = 8, dpi = 300, type = "cairo")
     }
 }

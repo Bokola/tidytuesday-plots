@@ -1,0 +1,203 @@
+---
+title: "Waffle chart"
+author: "bokola"
+date: "`r format(Sys.time(), '%d %B, %Y')`"
+output:
+  md_document:
+    #variant: markdown_github
+  word_document:
+    toc: yes
+    toc_depth: '3'
+  html_document:
+    highlight: tango
+    number_sections: yes
+    theme: united
+    toc: yes
+    toc_depth: 3
+---
+
+Here I explore the possibility of creating a waffle chat with R using school diversity data from #tidytuesday. 
+Packages in use include `geofacet`, `ggplot2` and `tidyverse`
+
+```{r packages, warning=FALSE,results='hide', echo=FALSE, message=FALSE}
+# Set project path and load packages
+cat("Installing packages", '\n')
+
+ipk = function(pkg){
+  new.pkg = list.of.pkgs[!(list.of.pkgs %in% .packages(all.available = TRUE))]
+  if(length(new.pkg)) install.packages(new.pkg, dependencies = T)
+  if('d3treeR' %in% list.of.pkgs){
+    remotes::install_github("d3treeR/d3treeR")
+  }
+  if(!'patchwork' %in% .packages(all.available = TRUE)){
+    devtools::install_github("thomasp85/patchwork")
+  }
+  if(!'ReporteRsjars' %in% .packages(all.available = TRUE)){
+    devtools::install_github('davidgohel/ReporteRsjars')
+  }
+  if(!'emo' %in% .packages(all.available = TRUE)){ # foe emoji's
+    devtools::install_github('hadley/emo')
+  }
+ 
+  sapply(pkg, require, character.only = T)
+}
+list.of.pkgs = c('here', 'lubridate', 'emo', 'tidyverse')
+ipk(list.of.pkgs)
+```
+
+```{r paths, warning=FALSE,results='hide', echo=FALSE, message=FALSE}
+
+hom.dir = ifelse(Sys.info()["sysname"] == "Windows", Sys.getenv("USERPROFILE"), Sys.getenv("HOME"))
+project.path = path.expand(file.path(hom.dir
+                                     ,"Analysis"
+                                     ,"tidytuesday plots")) %>% gsub("\\\\", "/", .)
+
+data.path = path.expand(file.path(project.path
+                                  ,"data"))
+scripts.path = path.expand(file.path(project.path
+                                     ,"src"
+                                     ,"r"))
+report.path = path.expand(file.path(project.path
+                                    ,"plots"
+                                    ))
+if(!file.exists(project.path)){
+  if(dir.create(project.path, recursive = T))
+    stop("The project directory \"",
+         project.path, "\"has been created!\nPlease fill it with relevant files and folders!")
+  else
+    stop("The project directory\"",
+         project.path,
+         "\"could not be created!")
+}
+if(!file.exists(data.path)){
+  if(dir.create(data.path, recursive = T))
+    stop("The project directory \"",
+         data.path, "\"has been created!\nPlease fill it with relevant files and folders!")
+  else
+    stop("The project directory\"",
+         data.path,
+         "\"could not be created!")
+}
+if(!file.exists(report.path)){
+  if(dir.create(report.path, recursive = T))
+    stop("The project directory \"",
+         report.path, "\"has been created!\nPlease fill it with relevant files and folders!")
+  else
+    stop("The project directory\"",
+         report.path,
+         "\"could not be created!")
+}
+if(!file.exists(scripts.path)){
+  if(dir.create(scripts.path, recursive = T))
+    stop("The project directory \"",
+         scripts.path, "\"has been created!\nPlease fill it with relevant files and folders!")
+  else
+    stop("The project directory\"",
+         scripts.path,
+         "\"could not be created!")
+}
+```
+
+```{r paths, warning=FALSE,results='hold', echo=TRUE, message=FALSE}
+# IMDB Horror movie ratings - Tidy Tuesday 22-10-2019
+
+# library(tidyverse)
+# library(lubridate)
+# library(emo)
+
+horror_movies <- readr::read_csv("https://raw.githubusercontent.com/rfordatascience/tidytuesday/master/data/2019/2019-10-22/horror_movies.csv") %>% 
+  mutate(movie_run_time = parse_number(movie_run_time),
+         month = month(dmy(release_date), label=T, abbr=F)) 
+
+
+# Total number of horror movies released per country
+total_country = horror_movies %>% 
+  count(release_country, name="total_country") %>%
+  arrange(desc(total_country))
+
+
+# Release month vs country
+horror_movies_month = horror_movies %>% 
+  filter(!is.na(month)) %>%
+  
+  # Count the number of releases per country and per month
+  count(release_country, month, name = "n") %>%
+  
+  # Remove if month is unknown
+   
+  
+  # Merge totals per month and country
+  left_join(total_country) %>%
+  
+  # Filter: take only countries with more than 10 movie releases into account
+  filter(total_country >= 10) %>% 
+  mutate(percentage = n / total_country) 
+
+
+# The plot
+ggplot(data=horror_movies_month, aes(x=month, y=percentage, fill=reorder(month, total_country, sum))) +
+  
+  # Points and boxplot  
+  geom_point(color="white") +
+  geom_boxplot(alpha=0.75, color="white") +
+  
+  # Annotation: Spain in October 
+  annotate(geom = "curve", 
+           x = 8.85, y = 0.35, 
+           xend = 9.95, yend = 0.4, 
+           curvature = -.2, 
+           color="white",
+           arrow = arrow(length = unit(2, "mm"))) +
+  annotate(geom = "text", 
+           x = 7.3, y = 0.325, 
+           label = "In Spain, 40% of horror\nmovies are released in October", hjust = "left", 
+           color="white") +
+    
+    # Annotation: Malaysia in February
+    annotate(geom = "curve", 
+             x = 2.75, y = 0.28, 
+             xend = 2, yend = 0.368, 
+             curvature = -.2, 
+             color="white",
+             arrow = arrow(length = unit(2, "mm"))) +
+    annotate(geom = "text", 
+             x = 2.8, y = 0.27, 
+             label = "Spooky: 38% of Malaysian horror\nmovies are released in February", 
+             hjust = "left", 
+             color="white") +
+  
+  # Boxplot fill  
+  scale_fill_viridis_d(option="inferno") +
+  
+  # y-axis labels as percentages  
+  scale_y_continuous(labels = scales::percent_format(accuracy = 1)) +
+  
+  # Text: title, subtitle, etc.  
+  labs(title=paste("Most horror movies are released in October", emo::ji("ghost")),
+       subtitle = "In most countries, October is the perfect month to release horror movies. Each point represents one country\nand shows what percentage of horror movies is released in this country in a specific month.\nThe lighter the color, the higher the total number of horror movies released during this month.\n",
+       x="",
+       y="",
+       caption="Source: IMDB, plot by @veerlevanson") +
+  
+  # Theme settings  
+  theme_dark(17) +
+  theme(legend.position = "none",
+        text = element_text(colour = "white", family="Arial Narrow"),
+        axis.text = element_text(colour = "white", family="Arial Narrow"),
+        plot.title = element_text(size=22, face = "bold"),
+        plot.subtitle = element_text(size=16),
+        plot.caption = element_text(size = 12, hjust = 1),
+        plot.background = element_rect(fill = "grey10"),
+        panel.background = element_blank(),
+        panel.grid.major = element_line(color = "grey70", size = 0.2),
+        panel.grid.minor = element_line(color = "grey70", size = 0.2),
+        plot.margin = unit(c(1,1,0.5,0.5), "cm")
+        )
+
+# Save plot
+ggsave(paste0(here::here(), "/tidytuesday plots/plots/HorrorMovies.jpg"), width=18, height=10, units="cm", scale=1.6, quality=100)
+
+
+```
+
+Plots made possible courtesy of https://gitlab.com/snippets/1907498
